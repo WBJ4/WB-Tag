@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>WB Tag</title>
+  <style>
+    body, html {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      background-color: #141618; font-family: sans-serif;
+      overflow: hidden; display: flex; justify-content: center; align-items: center;
+    }
+    #gameContainer { position: relative; width: 100vw; height: 100vh; background-color: #141618; }
+    .menu-panel {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 90%; max-width: 380px; background-color: #1e2024; border: 3px solid #3c4048;
+      border-radius: 12px; padding: 25px; box-sizing: border-box; color: white;
+      text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 10;
+    }
+    h1, h2 { margin-top: 0; margin-bottom: 20px; }
+    .section-label { display: block; font-size: 14px; color: #aaa; margin-bottom: 8px; text-align: left; }
+    .input-group { margin-bottom: 15px; }
+    .button-row, .device-row { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 15px; }
+    .device-row { flex-direction: column; gap: 15px; }
+    button { cursor: pointer; border: none; border-radius: 6px; font-weight: bold; transition: background 0.2s; user-select: none; }
+    .mode-btn, .cosmetic-btn, .device-btn { flex: 1; padding: 12px; background-color: #3c4048; color: white; }
+    .device-btn { font-size: 16px; background-color: #3c4048; }
+    .device-btn:hover { background-color: #aa8eff; color: black; }
+    .mode-btn.active, .cosmetic-btn.active { background-color: #aa8eff; color: black; }
+    input[type="text"] { width: 100%; padding: 10px; border-radius: 4px; border: none; background-color: #3c4048; color: white; box-sizing: border-box; }
+    input[type="range"] { width: 100%; }
+    .action-btn { width: 100%; padding: 10px; background-color: #3c4048; color: white; margin-bottom: 15px; }
+    .action-btn.active { background-color: #aa8eff; color: black; }
+    .play-btn { width: 100%; padding: 12px; background-color: #2ecc71; color: white; font-size: 18px; margin-top: 10px; }
+    .grid-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 20px; }
+    .speed-btn { padding: 12px 0; background-color: #3c4048; color: white; font-size: 16px; }
+    #gameCanvasContainer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+    canvas { width: 100%; height: 100%; display: block; }
+    .game-ui-btn { position: absolute; top: 15px; padding: 8px 16px; background-color: #3c4048; color: white; z-index: 5; }
+    .left-btn { left: 15px; } .right-btn { left: 130px; } 
+    #timerDisplay { position: absolute; top: 15px; right: 15px; color: white; font-size: 24px; font-weight: bold; z-index: 5; }
+    #joystickContainer { position: absolute; bottom: 50px; left: 50px; width: 120px; height: 120px; z-index: 20; }
+    #joystickBase { width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.15); border: 4px solid rgba(255, 255, 255, 0.4); border-radius: 50%; position: relative; touch-action: none; }
+    #joystickStick { width: 50px; height: 50px; background-color: rgba(255, 255, 255, 0.7); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div id="gameContainer">
+  <!-- MAIN MENU -->
+  <div id="mainMenu" class="menu-panel">
+    <h1>WB Tag</h1>
+    <label class="section-label">Select your gamemode:</label>
+    <div class="button-row">
+      <button id="btnClassic" class="mode-btn active">Classic</button>
+      <button id="btnInfection" class="mode-btn">Infection</button>
+    </div>
+    <div class="input-group">
+      <label class="section-label">Secret Code Box:</label>
+      <input type="text" id="secretCodeInput" placeholder="Enter code...">
+    </div>
+    <div id="cosmeticsSection" class="hidden">
+      <label class="section-label" style="color: #aa8eff;">Cosmetics Unlocked!</label>
+      <div class="button-row">
+        <button id="btnTophat" class="cosmetic-btn">Tophat</button>
+        <button id="btnBowtie" class="cosmetic-btn">Bowtie</button>
+      </div>
+    </div>
+    <div id="ownerSection" class="hidden">
+      <button id="btnToggleOwner" class="action-btn">Toggle Owner Color</button>
+    </div>
+    <div class="input-group">
+      <label class="section-label">Player Color Slider:</label>
+      <input type="range" id="colorSlider" min="0" max="360" value="200">
+    </div>
+    <button id="btnPlay" class="play-btn">PLAY</button>
+  </div>
+
+  <!-- BOT SPEED MENU -->
+  <div id="speedMenu" class="menu-panel hidden">
+    <h2>How fast should bots move?</h2>
+    <p style="color: #aaa; margin-top: -10px;">(Default is 3.2)</p>
+    <div class="grid-container"></div>
+  </div>
+
+  <!-- DEVICE MENU -->
+  <div id="deviceMenu" class="menu-panel hidden">
+    <h2>What device are you playing on?</h2>
+    <div class="device-row">
+      <button id="btnMobile" class="device-btn">1. Mobile</button>
+      <button id="btnLaptop" class="device-btn">2. Laptop/PC</button>
+    </div>
+  </div>
+
+  <!-- GAME INTERFACE & CANVAS -->
+  <div id="gameCanvasContainer" class="hidden">
+    <button id="btnMenu" class="game-ui-btn left-btn">Menu</button>
+    <button id="btnFullscreen" class="game-ui-btn right-btn">Fullscreen</button>
+    <div id="timerDisplay">Time Left: 05:00</div>
+    <div id="joystickContainer" class="hidden">
+      <div id="joystickBase"><div id="joystickStick"></div></div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resizeCanvas); resizeCanvas();
+
+let gameMode = "Classic", botSpeed = 3.2, selectedDevice = "laptop", isOwnerColor = false;
+let basePlayerColor = "hsl(200, 70%, 50%)"; const OWNER_HEX = "#aa8eff";
+let cosmeticsUnlocked = false, equipTophat = false, equipBowtie = false;
+let entities = [], gameTimer = 0, animationFrameId, gameActive = false;
+
+// CONTROLS HANDLERS
+let keysPressed = {};
+window.addEventListener("keydown", (e) => { keysPressed[e.key.toLowerCase()] = true; });
+window.addEventListener("keyup", (e) => { keysPressed[e.key.toLowerCase()] = false; });
+let joyDX = 0, joyDY = 0;
+
+// GAME ENTITY ENGINE
+class SquareEntity {
+  constructor(id, x, y, isPlayer = false) {
+    this.id = id; this.size = 30; this.x = x; this.y = y; this.isPlayer = isPlayer; this.isTagged = false;
+    this.randomColor = `hsl(${Math.random() * 240 + 60}, 80%, 50%)`; this.tagCooldowns = {};
+    let angle = Math.random() * Math.PI * 2; this.dx = Math.cos(angle); this.dy = Math.sin(angle);
+  }
+  getColor() {
+    if (this.isTagged) return "#ff0000";
+    if (this.isPlayer) return isOwnerColor ? OWNER_HEX : basePlayerColor;
+    return this.randomColor;
+  }
+  move(speed) {
+    for (let id in this.tagCooldowns) { if (this.tagCooldowns[id] > 0) this.tagCooldowns[id]--; }
+    if (this.isPlayer) {
+      if (selectedDevice === "laptop") {
+        let moveX = 0, moveY = 0;
+        if (keysPressed["w"] || keysPressed["arrowup"]) moveY = -1;
+        if (keysPressed["s"] || keysPressed["arrowdown"]) moveY = 1;
+        if (keysPressed["a"] || keysPressed["arrowleft"]) moveX = -1;
+        if (keysPressed["d"] || keysPressed["arrowright"]) moveX = 1;
+        if (moveX !== 0 && moveY !== 0) { moveX *= 0.7071; moveY *= 0.7071; }
+        this.x += moveX * (speed + 1.2); this.y += moveY * (speed + 1.2);
+      } else {
+        this.x += joyDX * (speed + 1.2); this.y += joyDY * (speed + 1.2);
+      }
+      this.x = Math.max(0, Math.min(this.x, canvas.width - this.size));
+      this.y = Math.max(0, Math.min(this.y, canvas.height - this.size));
+    } else {
+      this.x += this.dx * speed; this.y += this.dy * speed;
+      if (this.x <= 0 || this.x >= canvas.width - this.size) { this.dx *= -1; this.x = Math.max(0, Math.min(this.x, canvas.width - this.size)); }
+      if (this.y <= 0 || this.y >= canvas.height - this.size) { this.dy *= -1; this.y = Math.max(0, Math.min(this.y, canvas.height - this.size)); }
+      if (Math.random() < 0.02) { let angle = Math.random() * Math.PI * 2; this.dx = Math.cos(angle); this.dy = Math.sin(angle); }
+    }
+  }
+  draw() {
+    ctx.fillStyle = this.getColor(); ctx.fillRect(this.x, this.y, this.size, this.size);
+    let hasActiveCooldown = Object.values(this.tagCooldowns).some(time => time > 0);
+    if (hasActiveCooldown && !this.isTagged) { ctx.strokeStyle = "rgba(255, 255, 255, 0.6)"; ctx.lineWidth = 2; ctx.strokeRect(this.x - 3, this.y - 3, this.size + 6, this.size + 6); }
+    if (this.isPlayer) {
+      if (equipTophat) { ctx.fillStyle = "#000000"; ctx.fillRect(this.x - 5, this.y - 8, this.size + 10, 8); ctx.fillRect(this.x + 4, this.y - 25, this.size - 8, 18); ctx.fillStyle = "#ffffff"; ctx.fillRect(this.x + 4, this.y - 10, this.size - 8, 3); }
+      if (equipBowtie) { ctx.fillStyle = "#000000"; ctx.beginPath(); ctx.moveTo(this.x, this.y + this.size); ctx.lineTo(this.x, this.y + this.size + 10); ctx.lineTo(this.x + this.size/2, this.y + this.size + 5); ctx.fill(); ctx.beginPath(); ctx.moveTo(this.x + this.size, this.y + this.size); ctx.lineTo(this.x + this.size, this.y + this.size + 10); ctx.lineTo(this.x + this.size/2, this.y + this.size + 5); ctx.fill(); ctx.fillStyle = "#ffffff"; ctx.fillRect(this.x + this.size/2 - 3, this.y + this.size + 3, 6, 4); }
+    }
+  }
+}
+
+function resetRound() {
+  entities = []; let player = new SquareEntity(0, canvas.width / 2, canvas.height / 2, true); entities.push(player);
+  for (let i = 1; i <= 9; i++) { let rx = Math.random() * (canvas.width - 100) + 50, ry = Math.random() * (canvas.height - 100) + 50; entities.push(new SquareEntity(i, rx, ry)); }
+  entities[Math.floor(Math.random() * entities.length)].isTagged = true; gameTimer = 5 * 60 * 60;
+}
+
+function handleCollisions() {
+  for (let i = 0; i < entities.length; i++) {
+    for (let j = i + 1; j < entities.length; j++) {
+      let ent1 = entities[i], ent2 = entities[j];
+      if (ent1.x < ent2.x + ent2.size && ent1.x + ent1.size > ent2.x && ent1.y < ent2.y + ent2.size && ent1.y + ent1.size > ent2.y) {
+        if (gameMode === "Infection") { if (ent1.isTagged || ent2.isTagged) { ent1.isTagged = true; ent2.isTagged = true; } } 
+        else {
+          let cd = (ent1.tagCooldowns[ent2.id] > 0) || (ent2.tagCooldowns[ent1.id] > 0);
+          if (!cd) {
+            if (ent1.isTagged && !ent2.isTagged) { ent1.isTagged = false; ent2.isTagged = true; ent1.tagCooldowns[ent2.id] = 180; ent2.tagCooldowns[ent1.id] = 180; ent2.x += (Math.random() > 0.5 ? 20 : -20); } 
+            else if (ent2.isTagged && !ent1.isTagged) { ent2.isTagged = false; ent1.isTagged = true; ent1.tagCooldowns[ent2.id] = 180; ent2.tagCooldowns[ent1.id] = 180; ent1.x += (Math.random() > 0.5 ? 20 : -20); }
+          }
+        }
+      }
+    }
+  }
+}
+
+function update() {
+  if (!gameActive) return; ctx.clearRect(0, 0, canvas.width, canvas.height);
+  entities.forEach(ent => { ent.move(botSpeed); ent.draw(); }); handleCollisions();
+  if (gameMode === "Infection") { document.getElementById("timerDisplay").classList.add("hidden"); if (entities.every(ent => ent.isTagged)) resetRound(); } 
+  else {
+    document.getElementById("timerDisplay").classList.remove("hidden"); gameTimer--; let ts = Math.max(0, Math.floor(gameTimer / 60));
+    document.getElementById("timerDisplay").textContent = `Time Left: ${String(Math.floor(ts / 60)).padStart(2, '0')}:${String(ts % 60).padStart(2, '0')}`; if (gameTimer <= 0) resetRound();
+  }
+  animationFrameId = requestAnimationFrame(update);
+}
+
+// FULLSCREEN ACTION
+const fullscreenBtn = document.getElementById("btnFullscreen");
+fullscreenBtn.addEventListener("click", () => {
+  let elem = document.getElementById("gameContainer");
+  if (!document.fullscreenElement) { elem.requestFullscreen().then(() => { fullscreenBtn.textContent = "Exit Full"; }).catch(e => alert(e.message)); } 
+  else { document.exitFullscreen(); fullscreenBtn.textContent = "Fullscreen"; }
+});
+
+// VIRTUAL JOYSTICK FOR MOBILE WHEEL
+const base = document.getElementById("joystickBase"), stick = document.getElementById("joystickStick"); let joystickActive = false;
+function handleJoystick(e) {
+  if (!joystickActive) return; let touch = e.touches ? e.touches[0] : e, rect = base.getBoundingClientRect();
+  let cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2, dx = touch.clientX - cx, dy = touch.clientY - cy, dist = Math.hypot(dx, dy), mx = rect.width / 2;
+  if (dist > mx) { dx = (dx / dist) * mx; dy = (dy / dist) * mx; }
+  stick.style.left = `calc(50% + ${dx}px)`; stick.style.top = `calc(50% + ${dy}px)`; joyDX = dx / mx; joyDY = dy / mx;
+}
+base.addEventListener("touchstart", (e) => { joystickActive = true; handleJoystick(e); });
+window.addEventListener("touchmove", handleJoystick, { passive: false });
+window.addEventListener("touchend", () => { joystickActive = false; stick.style.left = "50%"; stick.style.top = "50%"; joyDX = 0; joyDY = 0; });
+
+document.getElementById("btnClassic").addEventListener("click", () => { gameMode = "Classic"; document.getElementById("btnClassic").classList.add("active"); document.getElementById("btnInfection").classList.remove("active"); });
+document.getElementById("btnInfection").addEventListener("click", () => { gameMode = "Infection"; document.getElementById("btnInfection").classList.add("active"); document.getElementById("btnClassic").classList.remove("active"); });
+
+// SECRET CODES ENGINE
+const handleSecretKeyEntry = (txt) => {
+  const c = txt.trim(); document.getElementById("cosmeticsSection").classList.add("hidden"); document.getElementById("ownerSection").classList.add("hidden"); cosmeticsUnlocked = false;
+  if (c === "Jayce1232") { cosmeticsUnlocked = true; document.getElementById("cosmeticsSection").classList.remove("hidden"); document.getElementById("ownerSection").classList.remove("hidden"); } 
+  else if (c === "Cosmetics") { cosmeticsUnlocked = true; document.getElementById("cosmeticsSection").classList.remove("hidden"); } 
+  else if (c === "Owner") { document.getElementById("ownerSection").classList.remove("hidden"); } 
+  else { isOwnerColor = false; document.getElementById("btnToggleOwner").classList.remove("active"); }
+};
+const box = document.getElementById("secretCodeInput");
+box.addEventListener("input", (e) => handleSecretKeyEntry(e.target.value));
+box.addEventListener("keyup", (e) => handleSecretKeyEntry(e.target.value));
+
+document.getElementById("btnTophat").addEventListener("click", () => { equipTophat = !equipTophat; document.getElementById("btnTophat").classList.toggle("active", equipTophat); });
+document.getElementById("btnBowtie").addEventListener("click", () => { equipBowtie = !equipBowtie; document.getElementById("btnBowtie").classList.toggle("active", equipBowtie); });
+document.getElementById("colorSlider").addEventListener("input", (e) => { basePlayerColor = `hsl(${e.target.value}, 70%, 50%)`; });
+document.getElementById("btnToggleOwner").addEventListener("click", () => { isOwnerColor = !isOwnerColor; document.getElementById("btnToggleOwner").classList.toggle("active", isOwnerColor); });
+document.getElementById("btnPlay").addEventListener("click", () => { document.getElementById("mainMenu").classList.add("hidden"); document.getElementById("speedMenu").classList.remove("hidden"); });
+
+// VELOCITY GENERATOR
+const gc = document.querySelector(".grid-container");
+for (let i = 1; i <= 10; i++) {
+  let b = document.createElement("button"); b.textContent = i; b.className = "speed-btn";
+  b.addEventListener("click", () => { botSpeed = i; document.getElementById("speedMenu").classList.add("hidden"); document.getElementById("deviceMenu").classList.remove("hidden"); });
+  gc.appendChild(b);
+}
+document.getElementById("btnMobile").addEventListener("click", () => { selectedDevice = "mobile"; launchGameEngine(); });
+document.getElementById("btnLaptop").addEventListener("click", () => { selectedDevice = "laptop"; launchGameEngine(); });
+
+function launchGameEngine() {
+  document.getElementById("deviceMenu").classList.add("hidden"); document.getElementById("gameCanvasContainer").classList.remove("hidden");
+  if (selectedDevice === "mobile") { document.getElementById("joystickContainer").classList.remove("hidden"); } else { document.getElementById("joystickContainer").classList.add("hidden"); }
+  gameActive = true; resetRound(); update();
+}
+document.getElementById("btnMenu").addEventListener("click", () => { gameActive = false; cancelAnimationFrame(animationFrameId); document.getElementById("gameCanvasContainer").classList.add("hidden"); document.getElementById("mainMenu").classList.remove("hidden"); });
+</script>
+</body>
+</html>
